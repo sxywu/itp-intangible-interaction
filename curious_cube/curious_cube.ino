@@ -14,7 +14,8 @@
 #define ASLEEP 4
 
 #define distancePin 2 // currently a button, replace with actual sensor later
-#define awakeTime 1000 // milliseconds cube will stay awake
+#define awakeTime 60000 // milliseconds cube will stay awake
+#define evaluateTime 1000 // evaluate next state every N seconds
 
 int possibleNextStates[5][2] = {
   {PEACE, SENSITIVE}, // from PEACE
@@ -26,6 +27,7 @@ int possibleNextStates[5][2] = {
 
 int currentState = ASLEEP;
 int lastWakeupTime = -1;
+int lastEvaluateTime = -1;
 
 void setup() {
   Serial.begin(9600);
@@ -41,11 +43,12 @@ void loop() {
   // get distance sensor reading (temp button)
   int distanceReading = digitalRead(distancePin);
   int seePerson = distanceReading == LOW;
+  int currentTime = millis();
 
   // if we have positive reading on distance sensor
   // update lastWakeupTime to current time so we can reset countdown for cube sleeping
   if (seePerson) {
-    lastWakeupTime = millis();
+    lastWakeupTime = currentTime;
   }
     
   // case when cube is asleep
@@ -55,16 +58,22 @@ void loop() {
       // TODO: first light up cube for 1 second
       // determine next state
       determineNextState();
-      Serial.println(currentState);
     }
   } else {
     // cube is awake
 
     // check if it should go to sleep
     // if current time is more than lastWakeupTime + awakeTime
-    if (millis() > (lastWakeupTime + awakeTime)) {
+    if (currentTime > (lastWakeupTime + awakeTime)) {
       currentState = ASLEEP;
       Serial.println("went to sleep!");
+    } else {
+      // if it doesn't need to go to sleep yet
+      // evaluate what next state should be every N seconds
+      if (currentTime > (lastEvaluateTime + evaluateTime)) {
+        determineNextState();
+        lastEvaluateTime = currentTime;
+      }
     }
   }
 
@@ -73,11 +82,17 @@ void loop() {
 
 void determineNextState() {
   int randomNum = random(100);
-  Serial.println(randomNum);
+  Serial.print("current state: ");
+  Serial.print(currentState);
+  Serial.print(", random number: ");
+  Serial.print(randomNum);
   // update current state
   if (randomNum < 50) {
     currentState = possibleNextStates[currentState][0];
   } else {
     currentState = possibleNextStates[currentState][1];
-  } 
+  }
+
+  Serial.print(", next state: ");
+  Serial.println(currentState);
 }
