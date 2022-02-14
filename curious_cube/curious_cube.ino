@@ -1,3 +1,5 @@
+#include <CapacitiveSensor.h>
+
 // A curious cube that acts like a cat
 // its default state is asleep
 // when it detects a person approaching, it lights up in recognition
@@ -14,15 +16,29 @@
 #define ASLEEP 4
 
 #define distancePin 2 // currently a button, replace with actual sensor later
-#define awakeTime 60000 // milliseconds cube will stay awake
-#define evaluateTime 1000 // evaluate next state every N seconds
 
+#define awakeTime 60000 // milliseconds cube will stay awake
+#define evaluateTime 5000 // evaluate next state every N seconds
+
+CapacitiveSensor capSensor = CapacitiveSensor(4,6);        // 10M resistor between pins 4 & 6, pin 6 is sensor pin
+long capSensorThreshold = 10000; // if capacitive sensor reading is over threshold, then cube is touched
+
+// when user is not interacting with cube
+// then state will be revaluated every N seconds
 int possibleNextStates[5][2] = {
   {PEACE, SENSITIVE}, // from PEACE
   {SENSITIVE, PEACE}, // from SENSITIVE
   {HAPPY, PEACE}, // from HAPPY
   {ANGRY, SENSITIVE}, // from ANGRY
   {PEACE, SENSITIVE} // from ASLEEP
+};
+// when user touches the cube, reevaluate state
+int touchNextStates[5][2] = {
+  {HAPPY, ANGRY}, // from PEACE
+  {ANGRY, ANGRY}, // from SENSITIVE
+  {HAPPY, HAPPY}, // from HAPPY
+  {ANGRY, ANGRY}, // from ANGRY
+  {ANGRY, ANGRY} // from ASLEEP
 };
 
 int currentState = ASLEEP;
@@ -42,7 +58,11 @@ void setup() {
 void loop() {
   // get distance sensor reading (temp button)
   int distanceReading = digitalRead(distancePin);
+  long touchReading = capSensor.capacitiveSensor(30);
+
   int seePerson = distanceReading == LOW;
+  int touchCube = touchReading > capSensorThreshold;
+
   int currentTime = millis();
 
   // if we have positive reading on distance sensor
@@ -50,37 +70,47 @@ void loop() {
   if (seePerson) {
     lastWakeupTime = currentTime;
   }
-    
-  // case when cube is asleep
-  if (currentState == ASLEEP) {
-    // cube sees person so it wakes up
-    if (seePerson) {
-      // TODO: first light up cube for 1 second
-      // determine next state
-      determineNextState();
-    }
-  } else {
-    // cube is awake
 
-    // check if it should go to sleep
-    // if current time is more than lastWakeupTime + awakeTime
-    if (currentTime > (lastWakeupTime + awakeTime)) {
-      currentState = ASLEEP;
-      Serial.println("went to sleep!");
+  if (touchCube) {
+    // if cube is touched, determine next state based on
+    // probabilities outlined in touchNextStates
+    determineNextState(touchNextStates);
+    // since we've evaluated state, also update lastEvaluateTime to now
+    lastEvaluateTime = currentTime;
+    // also reset wakeup time since we've touched it
+    lastWakeupTime = currentTime;
+  } else {
+    // if cube is not touched
+    
+    // case when cube is asleep
+    if (currentState == ASLEEP) {
+      // cube sees person so it wakes up
+      if (seePerson) {
+        // TODO: first light up cube for 1 second
+        // determine next state
+        determineNextState(possibleNextStates);
+      }
     } else {
-      // if it doesn't need to go to sleep yet
-      // evaluate what next state should be every N seconds
-      if (currentTime > (lastEvaluateTime + evaluateTime)) {
-        determineNextState();
-        lastEvaluateTime = currentTime;
+      // cube is awake
+
+      // check if it should go to sleep
+      // if current time is more than lastWakeupTime + awakeTime
+      if (currentTime > (lastWakeupTime + awakeTime)) {
+        currentState = ASLEEP;
+        Serial.println("went to sleep!");
+      } else {
+        // if it doesn't need to go to sleep yet
+        // evaluate what next state should be every N seconds
+        if (currentTime > (lastEvaluateTime + evaluateTime)) {
+          determineNextState(possibleNextStates);
+          lastEvaluateTime = currentTime;
+        }
       }
     }
   }
-
-  
 }
 
-void determineNextState() {
+void determineNextState(int nextStates[5][2]) {
   int randomNum = random(100);
   Serial.print("current state: ");
   Serial.print(currentState);
@@ -88,9 +118,9 @@ void determineNextState() {
   Serial.print(randomNum);
   // update current state
   if (randomNum < 50) {
-    currentState = possibleNextStates[currentState][0];
+    currentState = nextStates[currentState][0];
   } else {
-    currentState = possibleNextStates[currentState][1];
+    currentState = nextStates[currentState][1];
   }
 
   Serial.print(", next state: ");
