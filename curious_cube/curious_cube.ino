@@ -16,6 +16,8 @@
 #define ASLEEP 4
 
 #define distancePin 2 // currently a button, replace with actual sensor later
+#define whitePin 10
+#define yellowPin 11
 
 #define awakeTime 60000 // milliseconds cube will stay awake
 #define evaluateTime 5000 // evaluate next state every N seconds
@@ -50,6 +52,8 @@ void setup() {
 
   // temporary for button, will be replaced with sensor later
   pinMode(distancePin, INPUT_PULLUP);
+  pinMode(whitePin, OUTPUT);
+  pinMode(yellowPin, OUTPUT);
 
   // make sure random() is truly random
   randomSeed(analogRead(0));
@@ -86,7 +90,11 @@ void loop() {
     if (currentState == ASLEEP) {
       // cube sees person so it wakes up
       if (seePerson) {
-        // TODO: first light up cube for 1 second
+        // first light LED to white to give visual indicator that cube is awake
+        analogWrite(whitePin, 255); // turn on white LED
+        delay(1000);
+        analogWrite(whitePin, 0); // turn off white LED
+        
         // determine next state
         determineNextState(possibleNextStates);
       }
