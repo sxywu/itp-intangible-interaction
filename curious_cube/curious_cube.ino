@@ -12,7 +12,9 @@
 #define HAPPY 2
 #define ANGRY 3
 #define ASLEEP 4
+
 #define distancePin 2 // currently a button, replace with actual sensor later
+#define awakeTime 1000 // milliseconds cube will stay awake
 
 int possibleNextStates[5][2] = {
   {PEACE, SENSITIVE}, // from PEACE
@@ -48,13 +50,21 @@ void loop() {
     
   // case when cube is asleep
   if (currentState == ASLEEP) {
-    // cube sees person
-    // TODO: first light up cube for 1 second
- 
+    // cube sees person so it wakes up
     if (seePerson) {
+      // TODO: first light up cube for 1 second
       // determine next state
       determineNextState();
       Serial.println(currentState);
+    }
+  } else {
+    // cube is awake
+
+    // check if it should go to sleep
+    // if current time is more than lastWakeupTime + awakeTime
+    if (millis() > (lastWakeupTime + awakeTime)) {
+      currentState = ASLEEP;
+      Serial.println("went to sleep!");
     }
   }
 
