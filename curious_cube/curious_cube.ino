@@ -25,20 +25,20 @@ long capSensorThreshold = 10000; // if capacitive sensor reading is over thresho
 
 // when user is not interacting with cube
 // then state will be revaluated every N seconds
-int possibleNextStates[5][2] = {
-  {PEACE, SENSITIVE}, // from PEACE
-  {SENSITIVE, PEACE}, // from SENSITIVE
-  {HAPPY, PEACE}, // from HAPPY
-  {ANGRY, SENSITIVE}, // from ANGRY
-  {PEACE, SENSITIVE} // from ASLEEP
+int possibleNextStates[5][3] = {
+  {PEACE, SENSITIVE, 80}, // from PEACE, probability of staying PEACE is 80%
+  {SENSITIVE, PEACE, 80}, // from SENSITIVE
+  {HAPPY, PEACE, 60}, // from HAPPY
+  {ANGRY, SENSITIVE, 60}, // from ANGRY
+  {PEACE, SENSITIVE, 60} // from ASLEEP
 };
 // when user touches the cube, reevaluate state
-int touchNextStates[5][2] = {
-  {HAPPY, ANGRY}, // from PEACE
-  {ANGRY, ANGRY}, // from SENSITIVE
-  {HAPPY, HAPPY}, // from HAPPY
-  {ANGRY, ANGRY}, // from ANGRY
-  {ANGRY, ANGRY} // from ASLEEP
+int touchNextStates[5][3] = {
+  {HAPPY, ANGRY, 90}, // from PEACE
+  {ANGRY, ANGRY, 100}, // from SENSITIVE
+  {HAPPY, HAPPY, 100}, // from HAPPY
+  {ANGRY, ANGRY, 100}, // from ANGRY
+  {ANGRY, ANGRY, 100} // from ASLEEP
 };
 
 int currentState = ASLEEP;
@@ -110,14 +110,16 @@ void loop() {
   }
 }
 
-void determineNextState(int nextStates[5][2]) {
+void determineNextState(int nextStates[5][3]) {
   int randomNum = random(100);
+  // get probability of current state going to the first option of next state
+  int probability = nextStates[currentState][2];
   Serial.print("current state: ");
   Serial.print(currentState);
   Serial.print(", random number: ");
   Serial.print(randomNum);
   // update current state
-  if (randomNum < 50) {
+  if (randomNum < probability) {
     currentState = nextStates[currentState][0];
   } else {
     currentState = nextStates[currentState][1];
