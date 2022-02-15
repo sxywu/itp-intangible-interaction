@@ -22,7 +22,7 @@
 #define awakeTime 60000 // milliseconds cube will stay awake
 #define evaluateTime 5000 // evaluate next state every N seconds
 
-CapacitiveSensor capSensor = CapacitiveSensor(4,6);        // 10M resistor between pins 4 & 6, pin 6 is sensor pin
+CapacitiveSensor capSensor = CapacitiveSensor(4, 6);       // 10M resistor between pins 4 & 6, pin 6 is sensor pin
 long capSensorThreshold = 10000; // if capacitive sensor reading is over threshold, then cube is touched
 
 // when user is not interacting with cube
@@ -85,7 +85,7 @@ void loop() {
     lastWakeupTime = currentTime;
   } else {
     // if cube is not touched
-    
+
     // case when cube is asleep
     if (currentState == ASLEEP) {
       // cube sees person so it wakes up
@@ -94,7 +94,7 @@ void loop() {
         analogWrite(whitePin, 255); // turn on white LED
         delay(1000);
         analogWrite(whitePin, 0); // turn off white LED
-        
+
         // determine next state
         determineNextState(possibleNextStates);
       }
@@ -116,6 +116,35 @@ void loop() {
       }
     }
   }
+
+  // SET LED VALUES
+  int value = 0; // default to value 0 for ASLEEP
+  if (currentState != ASLEEP) {
+    // if awake
+    if (currentState == ANGRY) {
+      value = (currentTime / 100) % 2;
+      value = value * 255;
+    } else {
+      float speed = 0.25; // HAPPY & PEACE
+      if (currentState == SENSITIVE) {
+        speed = 1.5; // SENSITIVE
+      }
+      // brightness of LED is a sine wave of time (current - lastEvaluateTime)
+      float time = speed * currentTime / 1000.0;
+      value = 128.0 + 128 * sin( time * 2.0 * PI  );
+    }
+  }
+
+  if (currentState == HAPPY) {
+    // just for happy turn on yellow LED instead of white
+    analogWrite(yellowPin, value);
+    analogWrite(whitePin, 0);
+  } else {
+    // for everything else turn on white pin
+    analogWrite(whitePin, value);
+    analogWrite(yellowPin, 0);
+  }
+  
 }
 
 void determineNextState(int nextStates[5][3]) {
