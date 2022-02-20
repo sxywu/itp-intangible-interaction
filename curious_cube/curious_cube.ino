@@ -15,15 +15,15 @@
 #define ANGRY 3
 #define ASLEEP 4
 
-#define distancePin 2 // currently a button, replace with actual sensor later
-#define whitePin 10
-#define yellowPin 11
+#define distancePin 2
+#define whitePin 9
+#define yellowPin 10
 
 #define awakeTime 60000 // milliseconds cube will stay awake
 #define evaluateTime 5000 // evaluate next state every N seconds
 
 CapacitiveSensor capSensor = CapacitiveSensor(4, 6);       // 10M resistor between pins 4 & 6, pin 6 is sensor pin
-long capSensorThreshold = 10000; // if capacitive sensor reading is over threshold, then cube is touched
+long capSensorThreshold = 1000; // if capacitive sensor reading is over threshold, then cube is touched
 
 // when user is not interacting with cube
 // then state will be revaluated every N seconds
@@ -46,12 +46,13 @@ int touchNextStates[5][3] = {
 int currentState = ASLEEP;
 int lastWakeupTime = -1;
 int lastEvaluateTime = -1;
+int prevDistanceValue = LOW;
 
 void setup() {
   Serial.begin(9600);
 
   // temporary for button, will be replaced with sensor later
-  pinMode(distancePin, INPUT_PULLUP);
+  pinMode(distancePin, INPUT);
   pinMode(whitePin, OUTPUT);
   pinMode(yellowPin, OUTPUT);
 
@@ -64,15 +65,15 @@ void loop() {
   int distanceReading = digitalRead(distancePin);
   long touchReading = capSensor.capacitiveSensor(30);
 
-  int seePerson = distanceReading == LOW;
+  int seePerson = distanceReading == HIGH && prevDistanceValue == LOW;
   int touchCube = touchReading > capSensorThreshold;
-
   int currentTime = millis();
 
   // if we have positive reading on distance sensor
   // update lastWakeupTime to current time so we can reset countdown for cube sleeping
   if (seePerson) {
     lastWakeupTime = currentTime;
+    Serial.println("saw person");
   }
 
   if (touchCube) {
@@ -144,7 +145,8 @@ void loop() {
     analogWrite(whitePin, value);
     analogWrite(yellowPin, 0);
   }
-  
+
+  prevDistanceValue = distanceReading;
 }
 
 void determineNextState(int nextStates[5][3]) {
