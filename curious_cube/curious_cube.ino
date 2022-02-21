@@ -1,4 +1,8 @@
 #include <CapacitiveSensor.h>
+#include <Wire.h>
+#include "Adafruit_DRV2605.h"
+
+Adafruit_DRV2605 drv;
 
 // A curious cube that acts like a cat
 // its default state is asleep
@@ -58,6 +62,15 @@ void setup() {
 
   // make sure random() is truly random
   randomSeed(analogRead(0));
+
+  // motor
+  drv.begin();
+  
+  drv.selectLibrary(1);
+  
+  // I2C trigger by sending 'go' command 
+  // default, internal trigger when sending GO command
+  drv.setMode(DRV2605_MODE_INTTRIG); 
 }
 
 void loop() {
@@ -118,13 +131,22 @@ void loop() {
     }
   }
 
-  // SET LED VALUES
+  // SET LED & MOTOR VALUES
   int value = 0; // default to value 0 for ASLEEP
+  int effect = 0;
   if (currentState != ASLEEP) {
     // if awake
     if (currentState == ANGRY) {
       value = (currentTime / 100) % 2;
       value = value * 255;
+
+      // if LED is blinking on, then buzz motor
+      if (value) {
+        effect = 47;
+        
+  drv.setWaveform(0, effect);  // strong click
+  drv.go();
+      }
     } else {
       float speed = 0.25; // HAPPY & PEACE
       if (currentState == SENSITIVE) {
@@ -133,6 +155,18 @@ void loop() {
       // brightness of LED is a sine wave of time (current - lastEvaluateTime)
       float time = speed * currentTime / 1000.0;
       value = 128.0 + 128 * sin( time * 2.0 * PI  );
+
+      
+      if (currentTime == HAPPY) {
+        if (!value) {
+          effect = 82;
+        } else if (value == 255) {
+          effect = 70;
+        }
+        
+  drv.setWaveform(0, effect);  // strong click
+  drv.go();
+      }
     }
   }
 
@@ -145,6 +179,12 @@ void loop() {
     analogWrite(whitePin, value);
     analogWrite(yellowPin, 0);
   }
+
+
+  // set the effect to play
+  
+  // play the effect!
+  delay(1);
 
   prevDistanceValue = distanceReading;
 }
